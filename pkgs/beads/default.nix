@@ -39,15 +39,25 @@ stdenv.mkDerivation {
 
   # Upstream tarball layout differs per platform: darwin tarballs nest
   # under `beads_${version}_${os}_${arch}/`, linux tarballs are flat.
-  # `sourceRoot = "."` keeps stdenv from trying to cd into a non-existent
-  # top-level dir on linux; `find` locates `bd` in either layout.
-  sourceRoot = ".";
+  # The default unpackPhase + `sourceRoot = "."` relies on a stdenv
+  # patch that older nixpkgs revisions don't carry (the unpack-found-
+  # no-directories check fires before sourceRoot is honored), so do the
+  # extraction by hand into a fresh dir. Works on every stdenv vintage.
   dontConfigure = true;
   dontBuild = true;
 
+  unpackPhase = ''
+    runHook preUnpack
+    mkdir -p source
+    tar -xzf "$src" -C source
+    runHook postUnpack
+  '';
+
+  sourceRoot = "source";
+
   installPhase = ''
     runHook preInstall
-    install -Dm755 $(find . -type f -name bd | head -n1) $out/bin/bd
+    install -Dm755 "$(find . -type f -name bd | head -n1)" "$out/bin/bd"
     runHook postInstall
   '';
 
