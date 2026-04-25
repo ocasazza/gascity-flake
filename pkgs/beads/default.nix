@@ -37,14 +37,17 @@ stdenv.mkDerivation {
 
   src = fetchurl source;
 
-  # Tarball nests a single `beads_${version}_${os}_${arch}/` dir; let
-  # stdenv's default unpackPhase cd into it (no sourceRoot override).
+  # Upstream tarball layout differs per platform: darwin tarballs nest
+  # under `beads_${version}_${os}_${arch}/`, linux tarballs are flat.
+  # `sourceRoot = "."` keeps stdenv from trying to cd into a non-existent
+  # top-level dir on linux; `find` locates `bd` in either layout.
+  sourceRoot = ".";
   dontConfigure = true;
   dontBuild = true;
 
   installPhase = ''
     runHook preInstall
-    install -Dm755 bd $out/bin/bd
+    install -Dm755 $(find . -type f -name bd | head -n1) $out/bin/bd
     runHook postInstall
   '';
 
