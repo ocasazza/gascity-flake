@@ -49,11 +49,22 @@ nix run github:ocasazza/gascity-flake#beads   -- --help
 you point it at (`claude`, `codex`, or `gemini`), and authentication lives
 in those tools — not in this module.
 
-- For the Claude Code provider against LiteLLM, Vertex, Bedrock, etc., your
-  host should already configure `programs.claude-code.*` separately. This
-  flake intentionally does not bundle `claude-code`.
+**⚠️ IMPORTANT: GCP/Vertex proxy is NOT supported.** gc will not work with
+Vertex AI or GCP proxies. If you have `programs.claude-code` configured with
+`vertex.enable = true` or `litellm.cloudPassthrough = true`, those settings
+will NOT be inherited by gc. Instead:
+- For **Claude Code**, configure `programs.claude-code` without Vertex, or use
+  `litellm.enable = true` with `litellm.cloudPassthrough = false` to route
+  through LiteLLM's `/v1` endpoints (not `/vertex/v1`).
+- gc will only recognize `claude`, `codex`, or `gemini` CLIs and will shell
+  out to their native implementations. Provider CLI auth is independent.
+
+Usage guidance:
+- For the Claude Code provider, your host should configure `programs.claude-code.*`
+  separately. This flake intentionally does not bundle `claude-code`.
 - The two env-var knobs we expose, `defaultProvider` and `defaultModel`,
-  only set `GC_AGENT_PROVIDER` and `GC_AGENT_MODEL` as session defaults.
+  only set `GC_AGENT_PROVIDER` and `GC_AGENT_MODEL` as session defaults (both
+  default to `null`).
 - The actual per-workspace provider is chosen at `gc init --provider X`
   time and persisted to `.gc/city.toml` in that workspace.
 - If `gc init` warns about provider configuration, that is a provider-CLI

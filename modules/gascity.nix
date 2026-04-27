@@ -120,6 +120,27 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !lib.hasAttrByPath ["home" "sessionVariables" "CLAUDE_CODE_USE_VERTEX"] config
+                 && !lib.hasAttrByPath ["home" "sessionVariables" "ANTHROPIC_VERTEX_PROJECT_ID"] config
+                 && !lib.hasAttrByPath ["home" "sessionVariables" "CLOUD_ML_REGION"] config
+                 && !lib.hasAttrByPath ["home" "sessionVariablesExtra" "CLAUDE_CODE_USE_VERTEX"] config
+                 && !lib.hasAttrByPath ["home" "sessionVariablesExtra" "ANTHROPIC_VERTEX_PROJECT_ID"] config
+                 && !lib.hasAttrByPath ["home" "sessionVariablesExtra" "CLOUD_ML_REGION"] config;
+        message = ''
+          programs.gascity: GCP/Vertex proxy environment variables detected in session environment.
+
+          gc does not support Vertex AI and should never be routed through GCP. These vars would
+          leak from programs.claude-code or other sources into gc's shell environment.
+
+          Fix: Ensure programs.claude-code uses litellm WITHOUT cloudPassthrough, or disable Vertex
+          entirely. gc will shell out to claude/codex/gemini CLIs which handle their own auth
+          independently and are isolated from Claude Code's configuration.
+        '';
+      }
+    ];
+
     home.packages =
       [ cfg.package ]
       ++ lib.optional cfg.runtimeDeps.tmux.enable cfg.runtimeDeps.tmux.package
